@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"github.com/google/uuid"
 	"add/models"
-	"log"
 )
 
 func InsertMovie(db *sql.DB, movie models.Movie) (string, error) {
@@ -36,6 +35,44 @@ func InsertMovie(db *sql.DB, movie models.Movie) (string, error) {
 	return id, nil
 }
 
+func GetListMovie(db *sql.DB) ([]models.Movie, error) {
+
+	var (
+		movie []models.Movie
+	)
+
+	query := `
+		SELECT
+			id,
+			title,
+			TO_CHAR(duration, 'HH24:MI:SS'),
+			description
+		FROM movie
+	`
+
+	rows, err := db.Query(query)
+	if err != nil {
+		return []models.Movie{}, err
+	}
+
+	for rows.Next() {
+		var movie1 models.Movie
+
+		err = rows.Scan(
+			&movie1.Id,
+			&movie1.Title,
+			&movie1.Duration,
+			&movie1.Description,
+		)
+		if err != nil {
+			return []models.Movie{}, err
+		}
+
+		movie = append(movie, movie1)
+	}
+
+	return movie, nil
+}
 func GetByIdMovie(db *sql.DB, id string) (models.Movie, error) {
 
 	var (
@@ -65,36 +102,42 @@ func GetByIdMovie(db *sql.DB, id string) (models.Movie, error) {
 	return movie, nil
 }
 
-func GetByIdMovie1(db *sql.DB) (models.Movie, error) {
-
-	var (
-		movie models.Movie
-	)
+func UpdateMovie(db *sql.DB, movie models.Movie) error {
 
 	query := `
-		SELECT
-			id,
-			title,
-			TO_CHAR(duration, 'HH24:MI:SS'),
-			description
-		FROM movie 
+		UPDATE movie
+			set title=$2,
+			    duration=$3,
+			    description=$4
+		 WHERE id = $1
 	`
 
-	row,err := db.Query(query)
+	_, err := db.Exec(query,
+		movie.Id,
+		movie.Title,
+		movie.Duration,
+		movie.Description,
+	)
+
 	if err != nil {
-		log.Fatal(err)
-	}
-	// defer row.Close()
- err = row.Scan(
-	&movie.Id,
-	&movie.Title,
-	&movie.Duration,
-	&movie.Description,
-)
-log.Println(movie)
-	if err != nil {
-		return models.Movie{}, err
+		return err
 	}
 
-	return movie, nil
+	return nil
+}
+
+func DeleteMovie(db *sql.DB, id string) error {
+
+	query := `
+		DELETE from movie
+		 WHERE id = $1
+	`
+
+	_, err := db.Exec(query, id)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
